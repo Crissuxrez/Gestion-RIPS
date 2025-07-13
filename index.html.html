@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema RIPS Completo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f7f0;
+        }
+        
+        .excel-container {
+            width: 100%;
+            overflow: auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 5px;
+        }
+        
+        .table-container {
+            display: none;
+            padding: 15px;
+        }
+        
+        .table-container.active {
+            display: block;
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 12px;
+        }
+        
+        th, td {
+            border: 1px solid #c1d9c1;
+            padding: 6px 8px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: normal;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f0f7f0;
+        }
+        
+        tr:hover {
+            background-color: #e0efe0;
+        }
+        
+        .tab-bar {
+            display: flex;
+            background: #e8f5e9;
+            border-bottom: 1px solid #c1d9c1;
+            overflow-x: auto;
+        }
+        
+        .tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-right: 1px solid #c1d9c1;
+            white-space: nowrap;
+            transition: all 0.3s;
+        }
+        
+        .tab:hover {
+            background-color: #d0e8d0;
+        }
+        
+        .tab.active {
+            background: white;
+            border-bottom: 2px solid #4CAF50;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        
+        .action-buttons {
+            padding: 10px;
+            background: #e8f5e9;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid #c1d9c1;
+        }
+        
+        button {
+            padding: 6px 12px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #3d8b40;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #c1d9c1;
+            box-sizing: border-box;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        input:focus, select:focus {
+            outline: 2px solid #a5d6a7;
+        }
+        
+        .comment-cell {
+            background-color: #fffacd;
+            font-style: italic;
+            color: #666;
+        }
+        
+        .help-text {
+            font-size: 11px;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        .export-options {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+        
+        .export-options select {
+            width: auto;
+            padding: 6px;
+            border: 1px solid #c1d9c1;
+            border-radius: 3px;
+            background: white;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="excel-container">
+        <div class="tab-bar">
+            <div class="tab active" data-tab="AF">Transacción</div>
+            <div class="tab" data-tab="US">Usuarios</div>
+            <div class="tab" data-tab="AC">Consultas</div>
+            <div class="tab" data-tab="AP">Procedimientos</div>
+            <div class="tab" data-tab="AU">Urgencias</div>
+            <div class="tab" data-tab="AH">Hospitalización</div>
+            <div class="tab" data-tab="AN">Recién Nacido</div>
+            <div class="tab" data-tab="AM">Medicamentos</div>
+            <div class="tab" data-tab="AT">Otros Servicios</div>
+        </div>
+        
+        <div class="action-buttons">
+            <button id="addRow">+ Fila</button>
+            <div class="export-options">
+                <select id="exportFormat">
+                    <option value="excel">Excel</option>
+                    <option value="json">JSON</option>
+                </select>
+                <button id="exportData">Exportar Datos</button>
+            </div>
+        </div>
+        
+        <!-- Hoja Transacción -->
+        <div class="table-container active" id="AF-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>numDocumentoIdObligado</th>
+                        <th>numFactura</th>
+                        <th>tipoDocumento</th>
+                        <th>numNota</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="FV">Factura de Venta (FV)</option>
+                                <option value="NC">Nota Crédito (NC)</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Hoja Usuarios -->
+        <div class="table-container" id="US-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>numFactura</th>
+                        <th>TipoDocumentoIdentificacion</th>
+                        <th>NumDocumentoIdentificacion</th>
+                        <th>tipoUsuario</th>
+                        <th>fechaNacimiento</th>
+                        <th>codSexo</th>
+                        <th>codPaisResidencia</th>
+                        <th>codPaisOrigen</th>
+                        <th>codMunicipioResidencia</th>
+                        <th>codZonaTerritorialResidencia</th>
+                        <th>incapacidad</th>
+                        <th>consecutivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="CC">Cédula de ciudadanía</option>
+                                <option value="CE">Cédula de extranjería</option>
+                                <option value="CD">Carné diplomático</option>
+                                <option value="PA">Pasaporte</option>
+                                <option value="SC">Salvoconducto</option>
+                                <option value="PE">Permiso Especial</option>
+                                <option value="DE">Documento extranjero</option>
+                                <option value="PT">Protección Temporal</option>
+                            </select>
+                            <div class="help-text">Identificación del usuario/paciente (Ver tabla de referencia SISPRO)</div>
+                        </td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="1">Cotizante</option>
+                                <option value="2">Beneficiario</option>
+                                <option value="3">Visitante</option>
+                                <option value="4">Particular</option>
+                            </select>
+                        </td>
+                        <td><input type="date"></td>
+                        <td>
+                            <select>
+                                <option value="1">Femenino</option>
+                                <option value="2">Masculino</option>
+                                <option value="3">Indeterminado</option>
+                            </select>
+                        </td>
+                        <td><input type="text" value="CO"></td>
+                        <td><input type="text" value="CO"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="0">No</option>
+                                <option value="1">Sí</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Hoja Consultas -->
+        <div class="table-container" id="AC-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>numFactura</th>
+                        <th>tipoDocumentoUsuario</th>
+                        <th>numDocumentoUsuario</th>
+                        <th>codPrestador</th>
+                        <th>fechaInicioAtencion</th>
+                        <th>horaInicioAtencion</th>
+                        <th>numAutorizacion</th>
+                        <th>codConsulta</th>
+                        <th>modalidadGrupoServicioTecSal</th>
+                        <th>grupoServicios</th>
+                        <th>codServicio</th>
+                        <th>finalidadTecnologiaSalud</th>
+                        <th>causaMotivoAtencion</th>
+                        <th>codDiagnosticoPrincipal</th>
+                        <th>codDiagnosticoRelacionado1</th>
+                        <th>codDiagnosticoRelacionado2</th>
+                        <th>codDiagnosticoRelacionado3</th>
+                        <th>TipoDiagnosticoPrincipal</th>
+                        <th>tipoDocumentoIdentificacion</th>
+                        <th>numDocumentoIdentificacion</th>
+                        <th>VrServicio</th>
+                        <th>ConceptoRecaudo</th>
+                        <th>ValorPagoModerador</th>
+                        <th>numFEVPagoModerador</th>
+                        <th>Consecutivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="CC">Cédula de ciudadanía</option>
+                                <option value="CE">Cédula de extranjería</option>
+                                <option value="PA">Pasaporte</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="date"></td>
+                        <td><input type="time"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="1">Consulta externa</option>
+                                <option value="2">Urgencias</option>
+                                <option value="3">Hospitalización</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="1">Diagnóstico</option>
+                                <option value="2">Tratamiento</option>
+                                <option value="3">Control</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="1">Impresión diagnóstica</option>
+                                <option value="2">Confirmado nuevo</option>
+                                <option value="3">Confirmado repetido</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select>
+                                <option value="CC">Cédula de ciudadanía</option>
+                                <option value="CE">Cédula de extranjería</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="number"></td>
+                        <td><input type="text"></td>
+                        <td><input type="number"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Hoja Procedimientos -->
+        <div class="table-container" id="AP-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>numFactura</th>
+                        <th>tipoDocumentoUsuario</th>
+                        <th>numDocumentoUsuario</th>
+                        <th>codPrestador</th>
+                        <th>fechaInicioAtencion</th>
+                        <th>horaInicioAtencion</th>
+                        <th>idMIPRES</th>
+                        <th>numAutorizacion</th>
+                        <th>codProcedimiento</th>
+                        <th>viaIngresoServicioSalud</th>
+                        <th>modalidadGrupoServicioTecSal</th>
+                        <th>grupoServicios</th>
+                        <th>codServicio</th>
+                        <th>finalidadTecnologiaSalud</th>
+                        <th>tipoDocumentoIdentificacion</th>
+                        <th>numDocumentoIdentificacion</th>
+                        <th>codDiagnosticoPrincipal</th>
+                        <th>codDiagnosticoRelacionado</th>
+                        <th>codComplicacion</th>
+                        <th>vrServicio</th>
+                        <th>conceptoRecaudo</th>
+                        <th>valorPagoModerador</th>
+                        <th>numFEVPagoModerador</th>
+                        <th>consecutivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="CC">Cédula de ciudadanía</option>
+                                <option value="CE">Cédula de extranjería</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="date"></td>
+                        <td><input type="time"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="1">Consulta externa</option>
+                                <option value="2">Urgencias</option>
+                                <option value="3">Remisión</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select>
+                                <option value="1">Procedimiento diagnóstico</option>
+                                <option value="2">Procedimiento terapéutico</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="1">Diagnóstico</option>
+                                <option value="2">Tratamiento</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select>
+                                <option value="CC">Cédula de ciudadanía</option>
+                                <option value="CE">Cédula de extranjería</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="number"></td>
+                        <td><input type="text"></td>
+                        <td><input type="number"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Hoja Urgencias -->
+        <div class="table-container" id="AU-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>numFactura</th>
+                        <th>tipoDocumentoUsuario</th>
+                        <th>numDocumentoUsuario</th>
+                        <th>codPrestador</th>
+                        <th>fechaInicioAtencion</th>
+                        <th>horaInicioAtencion</th>
+                        <th>causaMotivoAtencion</th>
+                        <th>codDiagnosticoPrincipal</th>
+                        <th>codDiagnosticoPrincipalE</th>
+                        <th>codDiagnosticoRelacionadoE1</th>
+                        <th>codDiagnosticoRelacionadoE2</th>
+                        <th>codDiagnosticoRelacionadoE3</th>
+                        <th>condicionDestinoUsuarioEgreso</th>
+                        <th>codDiagnosticoCausaMuerte</th>
+                        <th>fechaEgreso</th>
+                        <th>horaEgreso</th>
+                        <th>consecutivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="CC">Cédula de ciudadanía</option>
+                                <option value="CE">Cédula de extranjería</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="date"></td>
+                        <td><input type="time"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="1">Alta médica</option>
+                                <option value="2">Remisión</option>
+                                <option value="3">Fuga</option>
+                                <option value="4">Fallecimiento</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="date"></td>
+                        <td><input type="time"></td>
+                        <td><input type="text"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Hoja Hospitalización -->
+        <div class="table-container" id="AH-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>numFactura</th>
+                        <th>tipoDocumentoUsuario</th>
+                        <th>numDocumentoUsuario</th>
+                        <th>codPrestador</th>
+                        <th>viaIngresoServicioSalud</th>
+                        <th>fechaInicioAtencion</th>
+                        <th>horaInicioAtencion</th>
+                        <th>numAutorizacion</th>
+                        <th>causaMotivoAtencion</th>
+                        <th>codDiagnosticoPrincipal</th>
+                        <th>codDiagnosticoPrincipalE</th>
+                        <th>codDiagnosticoRelacionadoE1</th>
+                        <th>codDiagnosticoRelacionadoE2</th>
+                        <th>codDiagnosticoRelacionadoE3</th>
+                        <th>codComplicacion</th>
+                        <th>condicionDestinoUsuarioEgreso</th>
+                        <th>codDiagnosticoCausaMuerte</th>
+                        <th>fechaEgreso</th>
+                        <th>horaEgreso</th>
+                        <th>consecutivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="CC">Cédula de ciudadanía</option>
+                                <option value="CE">Cédula de extranjería</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="1">Urgencias</option>
+                                <option value="2">Consulta externa</option>
+                                <option value="3">Remisión</option>
+                            </select>
+                        </td>
+                        <td><input type="date"></td>
+                        <td><input type="time"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="1">Alta médica</option>
+                                <option value="2">Remisión</option>
+                                <option value="3">Fuga</option>
+                                <option value="4">Fallecimiento</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="date"></td>
+                        <td><input type="time"></td>
+                        <td><input type="text"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Hoja Recién Nacido -->
+        <div class="table-container" id="AN-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>numFactura</th>
+                        <th>tipoDocumentoUsuario</th>
+                        <th>numDocumentoUsuario</th>
+                        <th>codPrestador</th>
+                        <th>tipoDocumentoIdentificacion</th>
+                        <th>numDocumentoIdentificacion</th>
+                        <th>fechaNacimiento</th>
+                        <th>HoraNacimiento</th>
+                        <th>edadGestacional</th>
+                        <th>numConsultasCPrenatal</th>
+                        <th>codSexoBiologico</th>
+                        <th>peso</th>
+                        <th>codDiagnosticoPrincipal</th>
+                        <th>condicionDestinoUsuarioEgreso</th>
+                        <th>codDiagnosticoCausaMuerte</th>
+                        <th>fechaEgreso</th>
+                        <th>horaEgreso</th>
+                        <th>consecutivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="CC">Cédula de ciudadanía</option>
+                                <option value="CE">Cédula de extranjería</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="RN">Registro Civil</option>
+                                <option value="SR">Sin registrar</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="date"></td>
+                        <td><input type="time"></td>
+                        <td><input type="text" placeholder="Semanas"></td>
+                        <td><input type="number"></td>
+                        <td>
+                            <select>
+                                <option value="1">Femenino</option>
+                                <option value="2">Masculino</option>
+                                <option value="3">Indeterminado</option>
+                            </select>
+                        </td>
+                        <td><input type="number" placeholder="Gramos"></td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="1">Alta médica</option>
+                                <option value="2">Remisión</option>
+                                <option value="3">Fallecimiento</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="date"></td>
+                        <td><input type="time"></td>
+                        <td><input type="text"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Hoja Medicamentos -->
+        <div class="table-container" id="AM-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>numFactura</th>
+                        <th>tipoDocumentoUsuario</th>
+                        <th>numDocumentoUsuario</th>
+                        <th>codPrestador</th>
+                        <th>numAutorizacion</th>
+                        <th>idMIPRES</th>
+                        <th>fechaDispensAdmon</th>
+                        <th>horaDispensAdmon</th>
+                        <th>codDiagnosticoPrincipal</th>
+                        <th>codDiagnosticoRelacionado</th>
+                        <th>tipoMedicamento</th>
+                        <th>codTecnologiaSalud</th>
+                        <th>nomTecnologiaSalud</th>
+                        <th>concentracionMedicamento</th>
+                        <th>unidadMedida</th>
+                        <th>formaFarmaceutica</th>
+                        <th>unidadMinDispensa</th>
+                        <th>cantidadMedicamento</th>
+                        <th>diasTratamiento</th>
+                        <th>tipoDocumentoIdentificacion</th>
+                        <th>numDocumentoIdentificacion</th>
+                        <th>vrUnitMedicamento</th>
+                        <th>vrServicio</th>
+                        <th>conceptoRecaudo</th>
+                        <th>valorPagoModerador</th>
+                        <th>numFEVPagoModerador</th>
+                        <th>consecutivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="CC">Cédula de ciudadanía</option>
+                                <option value="CE">Cédula de extranjería</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="date"></td>
+                        <td><input type="time"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="1">Genérico</option>
+                                <option value="2">Comercial</option>
+                                <option value="3">Biológico</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="mg">mg</option>
+                                <option value="ml">ml</option>
+                                <option value="UI">UI</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select>
+                                <option value="TAB">Tableta</option>
+                                <option value="CAP">Cápsula</option>
+                                <option value="JAR">Jarabe</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="number"></td>
+                        <td><input type="number"></td>
+                        <td>
+                            <select>
+                                <option value="CC">Cédula de ciudadanía</option>
+                                <option value="CE">Cédula de extranjería</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="number"></td>
+                        <td><input type="number"></td>
+                        <td><input type="text"></td>
+                        <td><input type="number"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Hoja Otros Servicios -->
+        <div class="table-container" id="AT-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>numFactura</th>
+                        <th>tipoDocumentoUsuario</th>
+                        <th>numDocumentoUsuario</th>
+                        <th>codPrestador</th>
+                        <th>numAutorizacion</th>
+                        <th>idMIPRES</th>
+                        <th>fechaSuministroTecnologia</th>
+                        <th>horaSuministroTecnologia</th>
+                        <th>tipoOS</th>
+                        <th>codTecnologiaSalud</th>
+                        <th>nomTecnologiaSalud</th>
+                        <th>cantidadOS</th>
+                        <th>tipoDocumentoIdentificacion</th>
+                        <th>numDocumentoIdentificacion</th>
+                        <th>vrUnitOS</th>
+                        <th>vrServicio</th>
+                        <th>conceptoRecaudo</th>
+                        <th>valorPagoModerador</th>
+                        <th>numFEVPagoModerador</th>
+                        <th>consecutivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text"></td>
+                        <td>
+                            <select>
+                                <option value="CC">Cédula de ciudadanía</option>
+                                <option value="CE">Cédula de extranjería</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="date"></td>
+                        <td><input type="time"></td>
+                        <td>
+                            <select>
+                                <option value="1">Insumos</option>
+                                <option value="2">Ayudas diagnósticas</option>
+                                <option value="3">Prótesis</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="number"></td>
+                        <td>
+                            <select>
+                                <option value="CC">Cédula de ciudadanía</option>
+                                <option value="CE">Cédula de extranjería</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="number"></td>
+                        <td><input type="number"></td>
+                        <td><input type="text"></td>
+                        <td><input type="number"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Variables globales
+            const tabs = document.querySelectorAll('.tab');
+            const tableContainers = document.querySelectorAll('.table-container');
+            let currentTab = 'AF';
+            
+            // Mapeo de códigos a nombres completos
+            const sheetNames = {
+                'AF': 'Transacción',
+                'US': 'Usuarios',
+                'AC': 'Consultas',
+                'AP': 'Procedimientos',
+                'AU': 'Urgencias',
+                'AH': 'Hospitalización',
+                'AN': 'Recién Nacido',
+                'AM': 'Medicamentos',
+                'AT': 'Otros Servicios'
+            };
+            
+            // Inicializar todas las tablas
+            initTables();
+            
+            // Configurar eventos de pestañas
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Cambiar pestaña activa
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Obtener el ID de la pestaña seleccionada
+                    currentTab = this.getAttribute('data-tab');
+                    
+                    // Mostrar la tabla correspondiente
+                    tableContainers.forEach(container => {
+                        container.classList.remove('active');
+                    });
+                    document.getElementById(`${currentTab}-table`).classList.add('active');
+                });
+            });
+            
+            // Configurar botón de añadir fila
+            document.getElementById('addRow').addEventListener('click', function() {
+                addRowToTable(currentTab);
+            });
+            
+            // Configurar botón de exportar datos
+            document.getElementById('exportData').addEventListener('click', exportData);
+            
+            // Función para inicializar datos en las tablas
+            function initTables() {
+                console.log('Sistema RIPS inicializado');
+            }
+            
+            // Función para añadir fila a la tabla actual
+            function addRowToTable(tabId) {
+                const table = document.querySelector(`#${tabId}-table tbody`);
+                let newRow;
+                
+                switch(tabId) {
+                    case 'AF':
+                        newRow = createAFRow();
+                        break;
+                    case 'US':
+                        newRow = createUSRow();
+                        break;
+                    case 'AC':
+                        newRow = createACRow();
+                        break;
+                    case 'AP':
+                        newRow = createAPRow();
+                        break;
+                    case 'AU':
+                        newRow = createAURow();
+                        break;
+                    case 'AH':
+                        newRow = createAHRow();
+                        break;
+                    case 'AN':
+                        newRow = createANRow();
+                        break;
+                    case 'AM':
+                        newRow = createAMRow();
+                        break;
+                    case 'AT':
+                        newRow = createATRow();
+                        break;
+                    default:
+                        newRow = createAFRow();
+                }
+                
+                table.appendChild(newRow);
+            }
+            
+            // Funciones para crear filas específicas para cada tabla
+            function createAFRow() {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="FV">Factura de Venta (FV)</option>
+                            <option value="NC">Nota Crédito (NC)</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                `;
+                return row;
+            }
+            
+            function createUSRow() {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="CC">Cédula de ciudadanía</option>
+                            <option value="CE">Cédula de extranjería</option>
+                            <option value="CD">Carné diplomático</option>
+                            <option value="PA">Pasaporte</option>
+                            <option value="SC">Salvoconducto</option>
+                            <option value="PE">Permiso Especial</option>
+                            <option value="DE">Documento extranjero</option>
+                            <option value="PT">Protección Temporal</option>
+                        </select>
+                        <div class="help-text">Identificación del usuario/paciente (Ver tabla de referencia SISPRO)</div>
+                    </td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="1">Cotizante</option>
+                            <option value="2">Beneficiario</option>
+                            <option value="3">Visitante</option>
+                            <option value="4">Particular</option>
+                        </select>
+                    </td>
+                    <td><input type="date"></td>
+                    <td>
+                        <select>
+                            <option value="1">Femenino</option>
+                            <option value="2">Masculino</option>
+                            <option value="3">Indeterminado</option>
+                        </select>
+                    </td>
+                    <td><input type="text" value="CO"></td>
+                    <td><input type="text" value="CO"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="0">No</option>
+                            <option value="1">Sí</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                `;
+                return row;
+            }
+            
+            function createACRow() {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="CC">Cédula de ciudadanía</option>
+                            <option value="CE">Cédula de extranjería</option>
+                            <option value="PA">Pasaporte</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="date"></td>
+                    <td><input type="time"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="1">Consulta externa</option>
+                            <option value="2">Urgencias</option>
+                            <option value="3">Hospitalización</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="1">Diagnóstico</option>
+                            <option value="2">Tratamiento</option>
+                            <option value="3">Control</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="1">Impresión diagnóstica</option>
+                            <option value="2">Confirmado nuevo</option>
+                            <option value="3">Confirmado repetido</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select>
+                            <option value="CC">Cédula de ciudadanía</option>
+                            <option value="CE">Cédula de extranjería</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="number"></td>
+                    <td><input type="text"></td>
+                    <td><input type="number"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                `;
+                return row;
+            }
+            
+            function createAPRow() {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="CC">Cédula de ciudadanía</option>
+                            <option value="CE">Cédula de extranjería</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="date"></td>
+                    <td><input type="time"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="1">Consulta externa</option>
+                            <option value="2">Urgencias</option>
+                            <option value="3">Remisión</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select>
+                            <option value="1">Procedimiento diagnóstico</option>
+                            <option value="2">Procedimiento terapéutico</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="1">Diagnóstico</option>
+                            <option value="2">Tratamiento</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select>
+                            <option value="CC">Cédula de ciudadanía</option>
+                            <option value="CE">Cédula de extranjería</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="number"></td>
+                    <td><input type="text"></td>
+                    <td><input type="number"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                `;
+                return row;
+            }
+            
+            function createAURow() {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="CC">Cédula de ciudadanía</option>
+                            <option value="CE">Cédula de extranjería</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="date"></td>
+                    <td><input type="time"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="1">Alta médica</option>
+                            <option value="2">Remisión</option>
+                            <option value="3">Fuga</option>
+                            <option value="4">Fallecimiento</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="date"></td>
+                    <td><input type="time"></td>
+                    <td><input type="text"></td>
+                `;
+                return row;
+            }
+            
+            function createAHRow() {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="CC">Cédula de ciudadanía</option>
+                            <option value="CE">Cédula de extranjería</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="1">Urgencias</option>
+                            <option value="2">Consulta externa</option>
+                            <option value="3">Remisión</option>
+                        </select>
+                    </td>
+                    <td><input type="date"></td>
+                    <td><input type="time"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="1">Alta médica</option>
+                            <option value="2">Remisión</option>
+                            <option value="3">Fuga</option>
+                            <option value="4">Fallecimiento</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="date"></td>
+                    <td><input type="time"></td>
+                    <td><input type="text"></td>
+                `;
+                return row;
+            }
+            
+            function createANRow() {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="CC">Cédula de ciudadanía</option>
+                            <option value="CE">Cédula de extranjería</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="RN">Registro Civil</option>
+                            <option value="SR">Sin registrar</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="date"></td>
+                    <td><input type="time"></td>
+                    <td><input type="text" placeholder="Semanas"></td>
+                    <td><input type="number"></td>
+                    <td>
+                        <select>
+                            <option value="1">Femenino</option>
+                            <option value="2">Masculino</option>
+                            <option value="3">Indeterminado</option>
+                        </select>
+                    </td>
+                    <td><input type="number" placeholder="Gramos"></td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="1">Alta médica</option>
+                            <option value="2">Remisión</option>
+                            <option value="3">Fallecimiento</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="date"></td>
+                    <td><input type="time"></td>
+                    <td><input type="text"></td>
+                `;
+                return row;
+            }
+            
+            function createAMRow() {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="CC">Cédula de ciudadanía</option>
+                            <option value="CE">Cédula de extranjería</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="date"></td>
+                    <td><input type="time"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="1">Genérico</option>
+                            <option value="2">Comercial</option>
+                            <option value="3">Biológico</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="mg">mg</option>
+                            <option value="ml">ml</option>
+                            <option value="UI">UI</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select>
+                            <option value="TAB">Tableta</option>
+                            <option value="CAP">Cápsula</option>
+                            <option value="JAR">Jarabe</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="number"></td>
+                    <td><input type="number"></td>
+                    <td>
+                        <select>
+                            <option value="CC">Cédula de ciudadanía</option>
+                            <option value="CE">Cédula de extranjería</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="number"></td>
+                    <td><input type="number"></td>
+                    <td><input type="text"></td>
+                    <td><input type="number"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                `;
+                return row;
+            }
+            
+            function createATRow() {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="text"></td>
+                    <td>
+                        <select>
+                            <option value="CC">Cédula de ciudadanía</option>
+                            <option value="CE">Cédula de extranjería</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="date"></td>
+                    <td><input type="time"></td>
+                    <td>
+                        <select>
+                            <option value="1">Insumos</option>
+                            <option value="2">Ayudas diagnósticas</option>
+                            <option value="3">Prótesis</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="number"></td>
+                    <td>
+                        <select>
+                            <option value="CC">Cédula de ciudadanía</option>
+                            <option value="CE">Cédula de extranjería</option>
+                        </select>
+                    </td>
+                    <td><input type="text"></td>
+                    <td><input type="number"></td>
+                    <td><input type="number"></td>
+                    <td><input type="text"></td>
+                    <td><input type="number"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                `;
+                return row;
+            }
+            
+            // Función principal para exportar datos
+            function exportData() {
+                const format = document.getElementById('exportFormat').value;
+                
+                if (format === 'excel') {
+                    exportToExcel();
+                } else {
+                    exportToJSON();
+                }
+            }
+            
+            // Función para exportar a Excel
+            function exportToExcel() {
+                const wb = XLSX.utils.book_new();
+                const date = new Date().toISOString().slice(0,10);
+                
+                // Definir las hojas que deben exportarse con sus nombres completos
+                const sheets = [
+                    { id: 'AF', name: sheetNames['AF'] },
+                    { id: 'US', name: sheetNames['US'] },
+                    { id: 'AC', name: sheetNames['AC'] },
+                    { id: 'AP', name: sheetNames['AP'] },
+                    { id: 'AU', name: sheetNames['AU'] },
+                    { id: 'AH', name: sheetNames['AH'] },
+                    { id: 'AN', name: sheetNames['AN'] },
+                    { id: 'AM', name: sheetNames['AM'] },
+                    { id: 'AT', name: sheetNames['AT'] }
+                ];
+                
+                sheets.forEach(sheet => {
+                    const table = document.querySelector(`#${sheet.id}-table table`);
+                    const data = getTableData(table);
+                    
+                    // Solo agregar hoja si hay datos o es obligatoria (como AF)
+                    if (data.length > 0 || sheet.id === 'AF') {
+                        const ws = XLSX.utils.json_to_sheet(data);
+                        XLSX.utils.book_append_sheet(wb, ws, sheet.name);
+                    }
+                });
+                
+                // Generar archivo
+                const fileName = `RIPS_${date}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+            }
+            
+            // Función para exportar a JSON
+            function exportToJSON() {
+                const data = {};
+                const date = new Date().toISOString().slice(0,10);
+                
+                // Definir las hojas que deben exportarse con sus nombres completos
+                const sheets = [
+                    { id: 'AF', name: sheetNames['AF'] },
+                    { id: 'US', name: sheetNames['US'] },
+                    { id: 'AC', name: sheetNames['AC'] },
+                    { id: 'AP', name: sheetNames['AP'] },
+                    { id: 'AU', name: sheetNames['AU'] },
+                    { id: 'AH', name: sheetNames['AH'] },
+                    { id: 'AN', name: sheetNames['AN'] },
+                    { id: 'AM', name: sheetNames['AM'] },
+                    { id: 'AT', name: sheetNames['AT'] }
+                ];
+                
+                sheets.forEach(sheet => {
+                    const table = document.querySelector(`#${sheet.id}-table table`);
+                    const tableData = getTableData(table);
+                    
+                    // Solo agregar al JSON si hay datos o es obligatoria (como AF)
+                    if (tableData.length > 0 || sheet.id === 'AF') {
+                        data[sheet.name] = tableData;
+                    }
+                });
+                
+                // Crear y descargar el archivo JSON
+                const jsonStr = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `RIPS_${date}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+            
+            // Función para obtener los datos de una tabla (sin los controles de entrada)
+            function getTableData(table) {
+                const data = [];
+                const headers = [];
+                
+                // Obtener encabezados
+                table.querySelectorAll('thead th').forEach(th => {
+                    headers.push(th.textContent.trim());
+                });
+                
+                // Obtener datos de cada fila
+                table.querySelectorAll('tbody tr').forEach(tr => {
+                    const rowData = {};
+                    let isEmptyRow = true;
+                    
+                    tr.querySelectorAll('td').forEach((td, index) => {
+                        const input = td.querySelector('input, select');
+                        let value = '';
+                        
+                        if (input) {
+                            if (input.tagName === 'INPUT') {
+                                value = input.value.trim();
+                                if (input.type === 'number') {
+                                    value = value ? parseFloat(value) : '';
+                                } else if (input.type === 'date') {
+                                    value = value || '';
+                                } else if (input.type === 'time') {
+                                    value = value || '';
+                                }
+                            } else if (input.tagName === 'SELECT') {
+                                value = input.value;
+                            }
+                            
+                            if (value !== '') {
+                                isEmptyRow = false;
+                            }
+                        }
+                        
+                        rowData[headers[index]] = value;
+                    });
+                    
+                    // Solo agregar fila si tiene datos
+                    if (!isEmptyRow) {
+                        data.push(rowData);
+                    }
+                });
+                
+                return data;
+            }
+        });
+    </script>
+</body>
+</html>
